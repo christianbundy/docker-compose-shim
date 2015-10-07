@@ -15,41 +15,41 @@ class shdocker:
             self.services = yaml.load(stream)
             self.start()
 
-    def link (self, service):
+    def link(self, service):
         if 'links' in self.services[service]:
             cmd = ''
             for link in self.services[service]['links']:
                 cmd += '{}_link="$({})" '.format(link, self.services[link]['config']['cmd'])
             return cmd
 
-
-    def parse_image (self, service, image):
+    def parse_image(self, service, image):
         self.services[service]['config']['image'] = image
 
-    def parse_build (self, service, build):
+    def parse_build(self, service, build):
         self.services[service]['config']['image'] = service
         return 'docker build -t {} {} && '.format(service, build)
 
-    def parse_ports (self, service, ports):
+    def parse_ports(self, service, ports):
         for port in ports:
             self.services[service]['config']['options'].append('-p {}'.format(port))
 
-    def parse_volumes (self, service, volumes):
+    def parse_volumes(self, service, volumes):
         for volume in volumes:
             self.services[service]['config']['options'].append('-v {}'.format(volume))
 
-    def parse_environment (self, service, environment):
+    def parse_environment(self, service, environment):
         for variable in environment:
             if environment[variable]:
                 value = '${}'.format(environment[variable])
             else:
                 value = variable
             self.services[service]['config']['options'].append('-e "{}={}"'.format(variable, value))
-    def parse_volumes_from (self, service, volumes_from):
+
+    def parse_volumes_from(self, service, volumes_from):
         for volumes_from_service in volumes_from:
             self.services[service]['config']['options'].append('--volumes-from {}'.format(volumes_from_service))
 
-    def parse_links (self, service, links):
+    def parse_links(self, service, links):
         for link in links:
             self.services[service]['config']['options'].append('--link "${}_link"'.format(link))
 
@@ -66,13 +66,13 @@ class shdocker:
             val = self.services[service][key]
             parser = getattr(self, "parse_{}".format(key), False)
             if parser:
-              ret = parser(service, val)
-              if ret:
-                  cmd += ret
+                ret = parser(service, val)
+                if ret:
+                    cmd += ret
 
         return cmd
 
-    def start (self):
+    def start(self):
         for service in self.services:
             cmd = self.parse(service)
 
