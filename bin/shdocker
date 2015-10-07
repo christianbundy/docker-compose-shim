@@ -10,8 +10,8 @@ dirname = os.path.split(os.path.dirname(
 class shdocker:
     services = None
 
-    def __init__(self, path):
-        with open("./docker-compose.yml", 'r') as stream:
+    def __init__(self, path='docker-compose.yml'):
+        with open(path, 'r') as stream:
             self.services = yaml.load(stream)
             self.start()
 
@@ -97,6 +97,5 @@ class shdocker:
             print('# {}'.format(service))
             print(cmd)
             print(' ')
-
 
 shd = shdocker('docker-compose.yml')
