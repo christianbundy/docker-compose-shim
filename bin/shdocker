@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+
+import yaml
+
+with open("./docker-compose.yml", 'r') as stream:
+    services = yaml.load(stream)
+    cmds = {}
+    for service in services:
+        obj = {
+                'options': [],
+                'image': '',
+                'command': '',
+                'args': []
+                }
+        cmd  = ''
+
+        for key in services[service]:
+            val = services[service][key]
+            if key == 'image':
+                obj['image'] = val
+            if key == 'build':
+                obj['image'] = service
+                cmd += 'docker build -t ' + service + ' ' + val + ' && '
+            if key == 'ports':
+                for port in val:
+                    obj['options'].append('-p ' + port)
+            if key == 'volumes':
+                for volume in val:
+                    obj['options'].append('-v ' + volume)
+            if key == 'environment':
+                for environment in val:
+                    if val[environment]:
+                      obj['options'].append('-e "' + environment + '=' + val[environment] + '"')
+                    else:
+                      obj['options'].append('-e "' + environment + '=$' + environment + '"')
+            if key == 'volumes_from':
+                for volumes_from_service in val:
+                    obj['options'].append('--volumes-from ' + volumes_from_service)
+            if key == 'links':
+                for link in val:
+                    obj['options'].append('--link "$' + link + '_link"')
+
+
+        run = ''.join(['docker run -d ',
+                ' '.join(obj['options']),
+                ' ' + obj['image'],
+                ' ' + obj['command'],
+                ' '.join(obj['args'])
+                ])
+        cmd += run
+        services[service]['cmd'] = cmd
+
+    for service in services:
+        cmd = ''
+        if 'links' in services[service]:
+            for link in services[service]['links']:
+                cmd += link + '_link="$(' + services[link]['cmd'] + ')" '
+        cmd += services[service]['cmd']
+        print('# ' + service)
+        print(cmd)
+
