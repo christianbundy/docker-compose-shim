@@ -1,4 +1,4 @@
-# [`docker-compose`][docker-compose] Shim
+# Docker Compose Shim
 
 The convenience of [`docker-compose`][docker-compose] and the consistency of [`docker`][docker].
 
