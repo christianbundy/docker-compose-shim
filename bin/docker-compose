@@ -1,43 +1,8 @@
 #!/usr/bin/env python3
 
-"""Docker Compose Shim
-
-Usage:
-  docker-compose build [options] <service>...
-  docker-compose help <command>
-  docker-compose kill [options] <service>...
-  docker-compose logs [options] <service>...
-  docker-compose port [options] <service> <service-port>
-  docker-compose ps [options] <service>...
-  docker-compose pull [options] <service>...
-  docker-compose restart [options] <service>...
-  docker-compose run [options] <service> [command] [args]
-  docker-compose scale [options] [SERVICE=NUM]...
-  docker-compose start <service>...
-  docker-compose stop [options] <service>...
-  docker-compose up [options] <service>...
-  docker-compose migrate-to-labels
-  docker-compose version [--short]
-
-Options:
-  -f --file=docker-compose.yml             use another compose file
-  --p --project-name=$(basename $(pwd)     use another project name
-  --verbose                                turn it up to 11
-  -v --version                             print version
-
-"""
-
 import os
 import yaml
 from docopt import docopt
-
-
-if __name__ == '__main__':
-    arguments = docopt(__doc__, version='docker-compose-shellout 1.0.0')
-    print(arguments)
-
-dirname = os.path.split(os.path.dirname(
-    os.path.realpath('docker-compose.yml')))[1]
 
 
 class shdocker:
@@ -48,15 +13,20 @@ class shdocker:
             self.services = yaml.load(stream)
             self.start()
 
-    def link(self, service):
-        if 'links' in self.services[service]:
-            cmd = ''
-            for link in self.services[service]['links']:
-                cmd += '{}_link="$({})" '.format(link, self.services[link]['config']['cmd'])
-            return cmd
+    def link(self, service, target):
+        if target == service:
+            if 'links' in self.services[service]:
+                for link in self.services[service]['links']:
+                    self.link(service, link)
+        else:
+            cmd = '{}_link="$({})" '.format(target, self.services[target]['config']['cmd'])
+            self.services[service]['config']['links'].append(cmd)
 
     def parse_image(self, service, image):
         self.services[service]['config']['image'] = image
+
+    def parse_command(self, service, command):
+        self.services[service]['config']['command'] = command
 
     def parse_build(self, service, build):
         self.services[service]['config']['image'] = service
@@ -65,6 +35,9 @@ class shdocker:
     def parse_ports(self, service, ports):
         for port in ports:
             self.services[service]['config']['options'].append('-p {}'.format(port))
+
+    def parse_restart(self, service, restart):
+        self.services[service]['config']['options'].append('--restart={}'.format(restart))
 
     def parse_volumes(self, service, volumes):
         for volume in volumes:
@@ -84,7 +57,10 @@ class shdocker:
 
     def parse_links(self, service, links):
         for link in links:
-            self.services[service]['config']['options'].append('--link "${}_link"'.format(link))
+            self.services[service]['config']['options'].append('--link "${}_link:{}"'.format(link, link))
+
+    def parse_config(self, service, links):
+        pass
 
     def parse(self, service):
         cmd = ''
@@ -92,7 +68,8 @@ class shdocker:
             'options': [],
             'image': '',
             'command': '',
-            'args': []
+            'args': [],
+            'links': []
         }
 
         for key in self.services[service]:
@@ -102,6 +79,8 @@ class shdocker:
                 ret = parser(service, val)
                 if ret:
                     cmd += ret
+            else:
+                raise("No parser found for {}".format(service))
 
         return cmd
 
@@ -122,13 +101,12 @@ class shdocker:
 
         for service in self.services:
             cmd = ''
-            ret = self.link(service)
-            if ret:
-                cmd = ret
+            self.link(service, service)
+            links = ''.join(self.services[service]['config']['links'])
 
             cmd += self.services[service]['config']['cmd']
             print('# {}'.format(service))
-            print(cmd)
-            print(' ')
+
+            print('{} {}'.format(links, cmd))
 
 shd = shdocker('docker-compose.yml')
