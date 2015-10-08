@@ -1,7 +1,40 @@
 #!/usr/bin/env python3
 
+"""Docker Compose Shim
+
+Usage:
+  docker-compose build [options] <service>...
+  docker-compose help <command>
+  docker-compose kill [options] <service>...
+  docker-compose logs [options] <service>...
+  docker-compose port [options] <service> <service-port>
+  docker-compose ps [options] <service>...
+  docker-compose pull [options] <service>...
+  docker-compose restart [options] <service>...
+  docker-compose run [options] <service> [command] [args]
+  docker-compose scale [options] [SERVICE=NUM]...
+  docker-compose start <service>...
+  docker-compose stop [options] <service>...
+  docker-compose up [options] <service>...
+  docker-compose migrate-to-labels
+  docker-compose version [--short]
+
+Options:
+  -f --file=docker-compose.yml             use another compose file
+  --p --project-name=$(basename $(pwd)     use another project name
+  --verbose                                turn it up to 11
+  -v --version                             print version
+
+"""
+
 import os
 import yaml
+from docopt import docopt
+
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__, version='docker-compose-shellout 1.0.0')
+    print(arguments)
 
 dirname = os.path.split(os.path.dirname(
     os.path.realpath('docker-compose.yml')))[1]
